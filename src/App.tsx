@@ -10,7 +10,8 @@ import { analyzeFrame, imageToImageData } from './lib/vision';
 import { evaluate } from './lib/rules';
 import { compressFrame, downscaleImageData, utf8ByteLength } from './lib/compression';
 import { buildPayload, buildReport, formatBytes } from './lib/reports';
-import { fleetAlerts, getFleet, pickReportingSat, auditLog } from './lib/fleet';
+import { fleetAlerts, getFleet, pickReportingSat, auditLog, notifyFleetChanged } from './lib/fleet';
+import { applyLiveOrbits } from './lib/tle';
 import {
   processVideoFile,
   processFrameSequence,
@@ -65,6 +66,18 @@ export default function App() {
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
         log.emit(`runtime init failed: ${msg}`, 'critical');
+      }
+      // Fetch real on-orbit elements from Celestrak and overlay them onto a
+      // handful of BELTO callsigns (COOPER→ISS, BRAND→Hubble, MURPH→NOAA-20,
+      // …). The globe and propagator keep running unchanged; only the orbit
+      // parameters get patched. If Celestrak is unreachable the dashboard
+      // falls back to its built-in synthetic constellation.
+      try {
+        await applyLiveOrbits(getFleet());
+        notifyFleetChanged();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        log.emit(`Celestrak overlay skipped: ${msg}`, 'warn');
       }
     })();
     return () => {

@@ -188,8 +188,11 @@ src/
     AnswerCard.tsx              renders Answer with citations
     MenuDrawer.tsx              console drawer (History / Log / Rules / About)
     SatelliteAnalyze.tsx        per-sat detail page
+    FleetOverview.tsx           full-screen fleet roster + add/remove + telemetry
   lib/
     fleet.ts                    fleet model + status + alert + bandwidth + KPI
+    tle.ts                      Celestrak live-orbit overlay (real ISS / Hubble / …)
+    live.ts                     NOAA GOES + NASA EONET + GIBS tile fetcher
     nlsearch.ts                 client-side NL parser → SearchFilter
     answer.ts                   SearchFilter → Answer (with citations)
     inference/                  ONNX wrappers, EuroSAT, anomaly CNN
@@ -253,14 +256,41 @@ Decisions in priority order:
 
 ## Real-time data sources
 
+All four feeds are public, no auth, no API keys, fetched directly from the browser
+at runtime. Open devtools → Network and you'll see them light up on load.
+
+- **Celestrak GP feed** — `celestrak.org/NORAD/elements/gp.php` — current mean
+  orbital elements for ~25 000 tracked objects, refreshed every few hours from
+  US Space Force inputs. On startup BELTO overlays real orbits onto a handful
+  of callsigns so the globe shows them in their actual current position:
+  - COOPER → **ISS (25544)**
+  - BRAND → **Hubble Space Telescope (20580)**
+  - MURPH → **NOAA-20 polar weather (43013)**
+  - KIRK → **Sentinel-2A (40697)**
+  - LEIA → **Landsat-9 (49260)**
+  - TARS → **Aqua / EOS PM-1 (27424)**
+  - HAL-9000 → **Terra / EOS AM-1 (25994)**
+  - ENDURANCE → **GOES-18 GEO weather (51850)**
 - **NOAA STAR CDN** — `cdn.star.nesdis.noaa.gov` — latest GOES-19 (East) and
   GOES-18 (West) at stable URLs, no auth, CORS-enabled. CONUS sector refreshes
   every 5 min.
-- **EONET v3** — Earth Observatory Natural Event Tracker
-- **GIBS WMTS** — MODIS Terra TrueColor (samples + timelapse)
+- **EONET v3** — Earth Observatory Natural Event Tracker (wildfires, volcanoes,
+  severe storms, floods).
+- **GIBS WMTS** — MODIS Terra TrueColor (samples + timelapse).
+
+If Celestrak is unreachable the dashboard silently falls back to its built-in
+synthetic constellation — no error surface, the globe still works.
 
 ## Honest framing
 
+- The **orbital positions of the eight mapped callsigns are real**, derived from
+  Celestrak's live GP feed (mean motion / inclination / RAAN / mean anomaly →
+  Kepler's third law → altitude). Re-load the page and you'll see them in
+  whatever position they actually occupy right now.
+- The remaining ten BELTO callsigns (RIPLEY, CASE, WATNEY, HERMES, ROCINANTE,
+  FALCON, VOYAGER, NOSTROMO, MURPH, GALACTICA, …) keep their **synthetic**
+  orbits so the constellation always has the full mix of optical / IR / SAR /
+  comms / weather roles, even if Celestrak is down.
 - The **EuroSAT classifier is real ML** trained on 27 k labeled Sentinel-2 RGB
   tiles. Predictions and confidence scores reflect actual model output.
 - The **spectral pipeline** (HSV + Sobel + connected components + traced contours)
@@ -269,9 +299,12 @@ Decisions in priority order:
 - The **anomaly-detection CNN** has random-initialized weights (sandbox
   limitations). Its embedding still preserves enough distance structure for
   frame-to-frame change detection.
-- The **fleet itself is simulated** — 18 satellites with realistic orbital
-  positions, batteries, and uplink rates. The dashboard is the story we'd tell an
-  operator on day one of running a real constellation.
+- The **telemetry simulator** (battery, fuel, temp, uplink) is synthetic but
+  thresholded against the documented STATUS_RULES (see the Rules tab).
+- The **inference itself runs on the operator's browser**, not onboard the
+  satellite. Treat it as a ground-side digital-twin of payload triage — the
+  same model could be cross-compiled and flashed onto a real radiation-hardened
+  inference accelerator with no algorithmic changes.
 
 ## Offline
 

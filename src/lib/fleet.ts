@@ -193,6 +193,14 @@ function _notifyFleet() {
   for (const l of _fleetListeners) l(getFleet());
 }
 
+/** Public hook for external modules (e.g. the Celestrak loader) to notify
+ *  subscribers that fleet membership or orbital elements were mutated
+ *  in-place and any downstream UI (globe orbit rings, fleet roster) should
+ *  re-render. */
+export function notifyFleetChanged(): void {
+  _notifyFleet();
+}
+
 function _seedSat(spec: Omit<Satellite, 'lat' | 'lon' | 'altKm' | 'battery' | 'fuel' | 'tempC' | 'status' | 'lifespanYears' | 'uplinkMbps' | 'lastContactSec' | 'inferenceCount' | 'alertCount' | 'bytesRawTotal' | 'bytesPayloadTotal' | 'hue'>, idx: number): Satellite {
   // Initial telemetry is comfortably healthy so the dashboard starts green
   // and degrades only when telemetry actually drifts.

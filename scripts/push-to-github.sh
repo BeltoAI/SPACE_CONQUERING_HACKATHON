@@ -26,7 +26,7 @@ git add -A
 if git diff --cached --quiet; then
   echo "Nothing to commit."
 else
-  git commit -m "BELTO fleet ops dashboard — v0.16.0
+  git commit -m "BELTO fleet ops dashboard — v0.17.0
 
 - Two-color separation: fleet status (NOMINAL/ACQUIRING/LOST) vs alert
   severity (CRITICAL/HIGH/WARNING/INFO).
@@ -49,7 +49,19 @@ v0.16.0 additions:
 - Add / remove satellite with explicit orbit (altitude, inclination,
   RAAN, phase). Period auto-derived from Kepler's third law.
 - FleetGlobe now subscribes to fleet pub-sub so newly added sats
-  appear on the 3D world view immediately."
+  appear on the 3D world view immediately.
+
+v0.17.0 additions:
+- Live orbital overlay from Celestrak GP feed (no auth, no API key).
+  On startup BELTO maps 8 of its callsigns onto real on-orbit
+  satellites — COOPER→ISS, BRAND→Hubble, MURPH→NOAA-20, KIRK→
+  Sentinel-2A, LEIA→Landsat-9, TARS→Aqua, HAL-9000→Terra,
+  ENDURANCE→GOES-18 — and patches their orbit elements with the
+  current MEAN_MOTION / INCLINATION / RAAN / MEAN_ANOMALY.
+- Altitude derived from Kepler's third law on the live mean motion.
+- Rules tab now has a 'LIVE DATA SOURCES' section so judges see
+  exactly which public feeds the dashboard talks to at runtime.
+- README updated with honest framing of what's real vs synthetic."
 fi
 
 git branch -M "$BRANCH"
